@@ -1,6 +1,7 @@
 import pygame
 import random
 from station import StationEnvironment
+from research import ResearchManager
 
 class MainMenu:
     def __init__(self, screen):
@@ -298,56 +299,82 @@ HEIGHT = 700
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("The Last Signal")
-
 clock = pygame.time.Clock()
 
 main_menu = MainMenu(screen)
-station = StationEnvironment(screen)
-
+research = ResearchManager(screen)
+station = None
 game_state = "menu"
 running = True
 
 while running:
-
     dt = clock.tick(60) / 1000
 
     for event in pygame.event.get():
-
         if event.type == pygame.QUIT:
             running = False
+            continue
 
         if game_state == "menu":
-
             result = main_menu.handle_event(event)
-
             if result == "start":
+                # A normal playthrough must not inherit a previous research condition.
+                research = ResearchManager(screen)
+                station = StationEnvironment(screen, condition="adaptive")
                 game_state = "game"
-
             elif result == "research":
-                game_state = "research"
-
+                game_state = "research_intro"
             elif result == "quit":
                 running = False
 
+        elif game_state == "research_intro":
+            result = research.handle_intro_event(event)
+            if result == "begin":
+                condition = research.start_session()
+                station = StationEnvironment(screen, condition=condition)
+                game_state = "game"
+            elif result == "menu":
+                game_state = "menu"
+
         elif game_state == "game":
-
             result = station.handle_event(event)
-
             if result == "menu":
+                if research.condition is not None:
+                    research = ResearchManager(screen)
+                game_state = "menu"
+            elif result == "completed" and research.condition is not None:
+                game_state = "questionnaire"
+
+        elif game_state == "questionnaire":
+            result = research.handle_questionnaire_event(event)
+            if result == "submitted":
+                try:
+                    research.save_results(station)
+                except OSError as error:
+                    research.export_message = f"CSV save failed: {error}"
+                game_state = "research_saved"
+            elif result == "menu":
+                game_state = "menu"
+
+        elif game_state == "research_saved":
+            if event.type == pygame.KEYDOWN and event.key in (
+                pygame.K_RETURN, pygame.K_ESCAPE, pygame.K_SPACE
+            ):
+                station = None
+                research = ResearchManager(screen)
                 game_state = "menu"
 
     if game_state == "menu":
-
         main_menu.draw()
-
+    elif game_state == "research_intro":
+        research.draw_intro()
     elif game_state == "game":
-
         station.update(dt)
         station.draw()
-
-    elif game_state == "research":
-
-        screen.fill((5, 9, 25))
+    elif game_state == "questionnaire":
+        research.draw_questionnaire()
+    elif game_state == "research_saved":
+        research.draw_saved()
 
     pygame.display.flip()
 

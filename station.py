@@ -4,7 +4,7 @@ from eli_npc import ELINPC
 
 class StationEnvironment:
 
-    def __init__(self, screen):
+    def __init__(self, screen, condition="adaptive"):
 
         self.screen = screen
         self.width, self.height = screen.get_size()
@@ -55,9 +55,12 @@ class StationEnvironment:
 
         # AI companion
         # Experimental is the default research condition.
+        self.research_condition = condition
+        self.research_complete = False
+
         self.eli = ELINPC(
             position=(820, 430),
-            condition="adaptive"
+            condition=condition
         )
 
         # Research terminals
@@ -275,42 +278,69 @@ class StationEnvironment:
 
     def handle_event(self, event):
 
-        # While E.L.I. is active, send ALL events to E.L.I.
-        # This includes KEYDOWN and TEXTINPUT.
         if self.eli.active:
             self.eli.handle_event(event)
+            if not self.eli.active:
+                self.check_research_completion()
+                if self.research_complete:
+                    return "completed"
+            return None
 
+        if self.show_dialogue:
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_e, pygame.K_RETURN, pygame.K_SPACE):
+                    self.show_dialogue = False
+                    self.check_research_completion()
+                    if self.research_complete:
+                        return "completed"
+                elif event.key == pygame.K_ESCAPE:
+                    self.show_dialogue = False
             return None
 
         if event.type == pygame.KEYDOWN:
-
             if event.key == pygame.K_ESCAPE:
                 return "menu"
-
             elif event.key == pygame.K_e:
                 self.interact()
-
+                if self.research_complete:
+                    return "completed"
         return None
+
+    def check_research_completion(self):
+        all_records_read = all(item["completed"] for item in self.terminals)
+        has_eli_interaction = self.eli.interaction_count > 0
+        self.research_complete = all_records_read and has_eli_interaction
 
     def interact(self):
 
-        if self.eli.active:
+        if self.eli.active or self.show_dialogue:
             return
 
         player_center = self.player.center
-        eli_center = self.eli.position
-
+        eli_center = (self.eli.position[0] + 21, self.eli.position[1] + 21)
         distance = pygame.Vector2(player_center).distance_to(
             pygame.Vector2(eli_center)
         )
 
         if distance < 100:
             self.eli.interact()
-
             return
 
-        # Keep your existing terminal interaction code below.
-        # For example, check whether the player is near a terminal.
+        for terminal in self.terminals:
+            terminal_distance = pygame.Vector2(player_center).distance_to(
+                pygame.Vector2(terminal["rect"].center)
+            )
+            if terminal_distance < 100:
+                if not terminal["completed"]:
+                    terminal["completed"] = True
+                    self.open_dialogue(terminal["name"], terminal["description"])
+                else:
+                    self.open_dialogue(
+                        terminal["name"],
+                        "This research record has already been reviewed."
+                    )
+                self.check_research_completion()
+                return
 
     def open_dialogue(self, title, message):
 
