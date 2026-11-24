@@ -643,7 +643,7 @@ class StationEnvironment:
             ) <= 85:
                 nearby = True
 
-        if nearby and not self.show_dialogue:
+        if nearby and not self.show_dialogue and not self.eli.active:
 
             prompt = self.font.render(
                 "PRESS E TO INTERACT",
@@ -656,6 +656,47 @@ class StationEnvironment:
             )
 
             self.screen.blit(prompt, rect)
+
+    def draw_emotion_status(self):
+        """Show the latest model prediction in adaptive gameplay only."""
+        if self.research_condition != "adaptive":
+            return
+
+        panel = pygame.Rect(self.width - 310, 128, 295, 58)
+        pygame.draw.rect(self.screen, (8, 18, 32), panel, border_radius=7)
+        pygame.draw.rect(self.screen, (40, 110, 140), panel, 1, border_radius=7)
+
+        if self.eli.interaction_count == 0:
+            first = "PLAYER EMOTION ANALYSIS"
+            second = "Awaiting your first message to E.L.I."
+        elif self.eli.emotion_result == "uncertain":
+            first = "PREDICTED EMOTION: UNCERTAIN"
+            second = "The message did not produce a clear result."
+        else:
+            first = f"PREDICTED EMOTION: {self.eli.emotion_result.upper()}"
+            second = f"Model confidence: {self.eli.emotion_confidence * 100:.1f}%"
+
+        self.screen.blit(self.small_font.render(first, True, self.cyan),
+                         (panel.x + 10, panel.y + 9))
+        self.screen.blit(self.small_font.render(second, True, self.white),
+                         (panel.x + 10, panel.y + 32))
+
+    def draw(self):
+        """Render the complete station frame."""
+        self.draw_floor()
+        self.draw_room_labels()
+        self.draw_walls()
+        self.draw_terminals()
+        self.draw_eli()
+        self.draw_player()
+        self.draw_hud()
+        self.draw_emotion_status()
+        self.draw_interaction_prompt()
+
+        if self.show_dialogue:
+            self.draw_dialogue()
+        if self.eli.active:
+            self.eli.draw_dialogue(self.screen)
 
     # -------------------------------------------------
     # DRAW DIALOGUE
@@ -736,33 +777,18 @@ class StationEnvironment:
             True,
             self.green
         )
+"""
+REFERENCE LIST
 
-        self.screen.blit(
-            instruction,
-            (panel.right - 260, panel.bottom - 25)
-        )
+Hartmann, J., 2022. Emotion English DistilRoBERTa-base. 
+[Online] Available at: https://huggingface.co/j-hartmann/emotion-english-distilroberta-base/ 
+[Accessed: 25 November 2026].
 
-    # -------------------------------------------------
-    # MAIN DRAW METHOD
-    # -------------------------------------------------
+Hugging Face, n.d. Pipelines. Hugging Face Transformers documentation. 
+[Online] Available at: https://huggingface.co/docs/transformers/en/main_classes/pipelines 
+[Accessed: 25 November 2026].
 
-    def draw(self):
-
-        self.draw_floor()
-        self.draw_room_labels()
-        self.draw_walls()
-        self.draw_terminals()
-        # Draw E.L.I. in the station
-        self.eli.draw(
-            self.screen,
-            self.camera_x,
-            self.camera_y
-        )
-
-        self.draw_player()
-
-        self.draw_hud()
-        self.draw_interaction_prompt()
-        self.draw_dialogue()
-
-        self.eli.draw_dialogue(self.screen)
+Pygame, n.d. Pygame documentation. 
+[Online] Available at: https://www.pygame.org/docs/ 
+[Accessed: 25 November 2026].
+"""

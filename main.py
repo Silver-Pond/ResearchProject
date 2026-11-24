@@ -203,13 +203,13 @@ class MainMenu:
         )
 
         instructions = [
-            "You are exploring an abandoned space station.",
-            "Interact with E.L.I., the station's AI companion.",
-            "Your dialogue choices influence the conversation.",
-            "Explore the station and complete your mission.",
-            "",
-            "Use your mouse to select dialogue options.",
-            "Follow the on-screen instructions to progress."
+            "Explore an abandoned research station.",
+            "Use W/A/S/D or the arrow keys to move.",
+            "Press E near E.L.I. or a research terminal.",
+            "Type messages to E.L.I. and press ENTER to send.",
+            "In adaptive mode, the game displays a predicted emotion.",
+            "Read all three terminals and speak with E.L.I. to finish.",
+            "Press ESC to return to the menu."
         ]
 
         y = 250
@@ -318,7 +318,7 @@ while running:
         if game_state == "menu":
             result = main_menu.handle_event(event)
             if result == "start":
-                # A normal playthrough must not inherit a previous research condition.
+                # Standard gameplay uses the adaptive E.L.I. experience.
                 research = ResearchManager(screen)
                 station = StationEnvironment(screen, condition="adaptive")
                 game_state = "game"
@@ -379,3 +379,18 @@ while running:
     pygame.display.flip()
 
 pygame.quit()
+"""
+REFERENCE LIST
+
+Hartmann, J., 2022. Emotion English DistilRoBERTa-base. 
+[Online] Available at: https://huggingface.co/j-hartmann/emotion-english-distilroberta-base/ 
+[Accessed: 25 November 2026].
+
+Hugging Face, n.d. Pipelines. Hugging Face Transformers documentation. 
+[Online] Available at: https://huggingface.co/docs/transformers/en/main_classes/pipelines 
+[Accessed: 25 November 2026].
+
+Pygame, n.d. Pygame documentation. 
+[Online] Available at: https://www.pygame.org/docs/ 
+[Accessed: 25 November 2026].
+"""
